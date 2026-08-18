@@ -62,7 +62,7 @@ fun SearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     var showAiInputDialog by remember { mutableStateOf(false) }
-    var aiWordsList by remember { mutableStateOf(listOf(com.example.model.AiWordRequest(word = "", subject = "", chapter = ""))) }
+    var aiWordsList by remember { mutableStateOf(listOf(com.example.model.AiWordRequest(word = "", context = null, subject = "", chapter = ""))) }
     var aiSubjectInput by remember { mutableStateOf("") }
     var aiChapterInput by remember { mutableStateOf("") }
     var sameSubjectAndChapter by remember { mutableStateOf(true) }
@@ -70,7 +70,7 @@ fun SearchScreen(
     // When showing the AI input dialog, pre-fill first word with current query
     LaunchedEffect(showAiInputDialog) {
         if (showAiInputDialog && aiWordsList.size == 1 && aiWordsList[0].word.isBlank()) {
-            aiWordsList = listOf(com.example.model.AiWordRequest(word = uiState.query, subject = aiSubjectInput, chapter = aiChapterInput))
+            aiWordsList = listOf(com.example.model.AiWordRequest(word = uiState.query, context = null, subject = aiSubjectInput, chapter = aiChapterInput))
         }
     }
 
@@ -500,7 +500,7 @@ fun SearchScreen(
     var subjectExpanded by remember { mutableStateOf(false) }
     var chapterExpanded by remember { mutableStateOf(false) }
 
-    // â”€â”€â”€ AI Input Dialog (Redesigned with scrollable layout) â”€â”€â”€
+    // â”€â”€â”€ AI Input Dialog (Redesigned with scrollable layout & optional context field) â”€â”€â”€
     if (showAiInputDialog && generatedWords.isEmpty()) {
         AlertDialog(
             onDismissRequest = { showAiInputDialog = false },
@@ -534,7 +534,7 @@ fun SearchScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 480.dp)
+                        .heightIn(max = 500.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -595,7 +595,7 @@ fun SearchScreen(
                         )
                     }
 
-                    // â”€â”€ Section 2: Words Input â”€â”€
+                    // â”€â”€ Section 2: Words & Context Input â”€â”€
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -605,7 +605,7 @@ fun SearchScreen(
                     ) {
                         Column(
                             modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -636,65 +636,92 @@ fun SearchScreen(
                             }
 
                             aiWordsList.forEachIndexed { index, wordReq ->
-                                OutlinedTextField(
-                                    value = wordReq.word,
-                                    onValueChange = { newWord ->
-                                        val newList = aiWordsList.toMutableList()
-                                        newList[index] = newList[index].copy(word = newWord)
-                                        aiWordsList = newList
-                                    },
-                                    label = { Text("Word ${index + 1}") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    trailingIcon = {
-                                        if (aiWordsList.size > 1) {
-                                            IconButton(
-                                                onClick = { aiWordsList = aiWordsList.toMutableList().also { it.removeAt(index) } },
-                                                modifier = Modifier.size(24.dp)
-                                            ) {
-                                                Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(10.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = wordReq.word,
+                                        onValueChange = { newWord ->
+                                            val newList = aiWordsList.toMutableList()
+                                            newList[index] = newList[index].copy(word = newWord)
+                                            aiWordsList = newList
+                                        },
+                                        label = { Text("Word ${index + 1}") },
+                                        placeholder = { Text("e.g. Federalism") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp),
+                                        trailingIcon = {
+                                            if (aiWordsList.size > 1) {
+                                                IconButton(
+                                                    onClick = { aiWordsList = aiWordsList.toMutableList().also { it.removeAt(index) } },
+                                                    modifier = Modifier.size(24.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                                }
                                             }
                                         }
-                                    }
-                                )
-                                
-                                if (!sameSubjectAndChapter) {
-                                    Row(
+                                    )
+
+                                    // Crucial optional Context input field
+                                    OutlinedTextField(
+                                        value = wordReq.context ?: "",
+                                        onValueChange = { newCtx ->
+                                            val newList = aiWordsList.toMutableList()
+                                            newList[index] = newList[index].copy(context = if (newCtx.isBlank()) null else newCtx)
+                                            aiWordsList = newList
+                                        },
+                                        label = { Text("Context / Usage Hint (Optional)") },
+                                        placeholder = { Text("e.g. Indian Constitution Article 246 context") },
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = wordReq.subject,
-                                            onValueChange = { newSubj ->
-                                                val newList = aiWordsList.toMutableList()
-                                                newList[index] = newList[index].copy(subject = newSubj)
-                                                aiWordsList = newList
-                                            },
-                                            label = { Text("Subject") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        OutlinedTextField(
-                                            value = wordReq.chapter,
-                                            onValueChange = { newChap ->
-                                                val newList = aiWordsList.toMutableList()
-                                                newList[index] = newList[index].copy(chapter = newChap)
-                                                aiWordsList = newList
-                                            },
-                                            label = { Text("Chapter") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+
+                                    if (!sameSubjectAndChapter) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedTextField(
+                                                value = wordReq.subject,
+                                                onValueChange = { newSubj ->
+                                                    val newList = aiWordsList.toMutableList()
+                                                    newList[index] = newList[index].copy(subject = newSubj)
+                                                    aiWordsList = newList
+                                                },
+                                                label = { Text("Subject") },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            OutlinedTextField(
+                                                value = wordReq.chapter,
+                                                onValueChange = { newChap ->
+                                                    val newList = aiWordsList.toMutableList()
+                                                    newList[index] = newList[index].copy(chapter = newChap)
+                                                    aiWordsList = newList
+                                                },
+                                                label = { Text("Chapter") },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
 
                             if (aiWordsList.size < 20) {
                                 TextButton(
-                                    onClick = { aiWordsList = aiWordsList + com.example.model.AiWordRequest(word = "", subject = if(sameSubjectAndChapter) aiSubjectInput else "", chapter = if(sameSubjectAndChapter) aiChapterInput else "") },
+                                    onClick = { aiWordsList = aiWordsList + com.example.model.AiWordRequest(word = "", context = null, subject = if(sameSubjectAndChapter) aiSubjectInput else "", chapter = if(sameSubjectAndChapter) aiChapterInput else "") },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -837,7 +864,7 @@ fun SearchScreen(
         )
     }
 
-    // â”€â”€â”€ Review Generated Words Dialog (Improved layout) â”€â”€â”€
+    // â”€â”€â”€ Review Generated Words Dialog â”€â”€â”€
     if (showAiInputDialog && generatedWords.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { 
@@ -979,7 +1006,7 @@ fun SearchScreen(
                             showAiInputDialog = false
                             viewModel.clearAiStatus()
                             viewModel.clearSearch()
-                            aiWordsList = listOf(com.example.model.AiWordRequest(word = "", subject = "", chapter = ""))
+                            aiWordsList = listOf(com.example.model.AiWordRequest(word = "", context = null, subject = "", chapter = ""))
                         }
                     },
                     enabled = aiStatus == null || aiStatus?.startsWith("Error") == true || aiStatus == "Words generated successfully!"
@@ -1104,5 +1131,7 @@ fun SearchWordItem(
         }
     }
 }
+
+
 
 

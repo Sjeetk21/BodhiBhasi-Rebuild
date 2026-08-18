@@ -1,10 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -29,7 +26,6 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +34,14 @@ import com.example.viewmodel.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+// Vibrant Theme Color Palette for Analytics
+private val AnalyticsCyan = Color(0xFF38BDF8)
+private val AnalyticsPurple = Color(0xFFA78BFA)
+private val AnalyticsOrange = Color(0xFFFB923C)
+private val AnalyticsGreen = Color(0xFF4ADE80)
+private val AnalyticsPink = Color(0xFFF472B6)
+private val AnalyticsYellow = Color(0xFFFACC15)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +56,7 @@ fun LearningAnalyticsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Analytics",
+                        text = "Analytics & Insights",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -74,7 +78,7 @@ fun LearningAnalyticsScreen(
     ) { padding ->
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(strokeWidth = 2.dp)
+                CircularProgressIndicator(strokeWidth = 3.dp, color = AnalyticsCyan)
             }
         } else if (uiState.errorMessage != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -85,42 +89,42 @@ fun LearningAnalyticsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 
-                // 1. Hero Stats Row with Streak
+                // 1. Hero Stats Row (Words, Mastered, Retention %, Streak 🔥)
                 HeroStatsSection(uiState)
 
-                // 2. Learning Journey Donut Chart
+                // 2. Weekly Snapshot Card
+                WeeklySnapshotCard(uiState)
+
+                // 3. Learning Journey Donut Chart
                 PremiumLearningDistribution(
                     distribution = uiState.learningDistribution,
                     total = uiState.totalWordsTracked.coerceAtLeast(1)
                 )
 
-                // 3. Weekly Snapshot Card
-                WeeklySnapshotCard(uiState)
-
-                // 4. Subject Breakdown
+                // 4. Subject Breakdown Horizontal Bars
                 if (uiState.subjectDistribution.isNotEmpty()) {
                     SubjectBreakdownSection(uiState.subjectDistribution)
                 }
 
-                // 5. Activity (Last 30 Days)
+                // 5. Activity (Last 30 Days Bar Chart)
                 PremiumActivityChart(data = uiState.dailyRevisionsHistory)
 
-                // 6. Quick Stats Grid
+                // 6. At a Glance Quick Stats Grid
                 QuickStatsGrid(uiState)
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
     }
 }
 
-// --- Hero Stats ----------------------------------------------
+// ─── Hero Stats Section ──────────────────────────────────────────────
 
 @Composable
 fun HeroStatsSection(uiState: AnalyticsUiState) {
@@ -132,23 +136,51 @@ fun HeroStatsSection(uiState: AnalyticsUiState) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        ),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    AnalyticsYellow.copy(alpha = 0.3f),
+                    AnalyticsCyan.copy(alpha = 0.15f)
+                )
+            )
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 20.dp, horizontal = 8.dp),
+                .padding(vertical = 16.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeroStat("Words", "{uiState.totalWordsTracked}", modifier = Modifier.weight(1f))
+            HeroStatItem(
+                title = "Words",
+                value = "${uiState.totalWordsTracked}",
+                color = AnalyticsYellow,
+                modifier = Modifier.weight(1f)
+            )
             VerticalDividerThin()
-            HeroStat("Mastered", "{uiState.totalWordsMastered}", modifier = Modifier.weight(1f))
+            HeroStatItem(
+                title = "Mastered",
+                value = "${uiState.totalWordsMastered}",
+                color = AnalyticsGreen,
+                modifier = Modifier.weight(1f)
+            )
             VerticalDividerThin()
-            HeroStat("Retention", "retentionRate%", modifier = Modifier.weight(1f))
+            HeroStatItem(
+                title = "Retention",
+                value = "$retentionRate%",
+                color = AnalyticsCyan,
+                modifier = Modifier.weight(1f)
+            )
             VerticalDividerThin()
-            HeroStat("Streak", if (uiState.learningStreak > 0) "{uiState.learningStreak}\uD83D\uDD25" else "0", modifier = Modifier.weight(1f))
+            HeroStatItem(
+                title = "Streak",
+                value = if (uiState.learningStreak > 0) "${uiState.learningStreak}🔥" else "0",
+                color = AnalyticsOrange,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -159,12 +191,12 @@ fun VerticalDividerThin() {
         modifier = Modifier
             .height(36.dp)
             .width(1.dp)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
     )
 }
 
 @Composable
-fun HeroStat(title: String, value: String, modifier: Modifier = Modifier) {
+fun HeroStatItem(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -173,23 +205,23 @@ fun HeroStat(title: String, value: String, modifier: Modifier = Modifier) {
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
+                fontSize = 20.sp
             ),
-            color = MaterialTheme.colorScheme.onBackground
+            color = color
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Medium,
-                letterSpacing = 0.3.sp
+                letterSpacing = 0.2.sp
             ),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
     }
 }
 
-// --- Weekly Snapshot Card ------------------------------------
+// ─── Weekly Snapshot Card ────────────────────────────────────
 
 @Composable
 fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
@@ -197,20 +229,20 @@ fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+            containerColor = AnalyticsCyan.copy(alpha = 0.08f)
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = Brush.linearGradient(
                 colors = listOf(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    AnalyticsCyan.copy(alpha = 0.35f),
+                    AnalyticsPurple.copy(alpha = 0.2f)
                 )
             )
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -219,12 +251,12 @@ fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
                 Icon(
                     imageVector = Icons.Outlined.Insights,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = AnalyticsCyan,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = "Weekly Snapshot",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
@@ -234,27 +266,31 @@ fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 SnapshotMetric(
-                    icon = Icons.Outlined.Add,
-                    value = "{uiState.wordsAddedThisWeek}",
+                    icon = Icons.Outlined.AddCircle,
+                    value = "${uiState.wordsAddedThisWeek}",
                     label = "Added",
+                    color = AnalyticsCyan,
                     modifier = Modifier.weight(1f)
                 )
                 SnapshotMetric(
                     icon = Icons.Outlined.TrendingUp,
-                    value = String.format("%.1f", uiState.averageDailyRevisions),
+                    value = String.format(Locale.US, "%.1f", uiState.averageDailyRevisions),
                     label = "Avg/Day",
+                    color = AnalyticsGreen,
                     modifier = Modifier.weight(1f)
                 )
                 SnapshotMetric(
                     icon = Icons.Outlined.EmojiEvents,
-                    value = "{uiState.bestDay}",
+                    value = "${uiState.bestDay}",
                     label = "Best Day",
+                    color = AnalyticsYellow,
                     modifier = Modifier.weight(1f)
                 )
                 SnapshotMetric(
                     icon = Icons.Outlined.Warning,
-                    value = "{uiState.difficultWords}",
-                    label = "Tough",
+                    value = "${uiState.difficultWords}",
+                    label = "Challenging",
+                    color = AnalyticsOrange,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -263,7 +299,13 @@ fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
 }
 
 @Composable
-fun SnapshotMetric(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+fun SnapshotMetric(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -272,8 +314,8 @@ fun SnapshotMetric(icon: ImageVector, value: String, label: String, modifier: Mo
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp)
+            tint = color,
+            modifier = Modifier.size(20.dp)
         )
         Text(
             text = value,
@@ -283,12 +325,13 @@ fun SnapshotMetric(icon: ImageVector, value: String, label: String, modifier: Mo
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            maxLines = 1
         )
     }
 }
 
-// --- Subject Breakdown ---------------------------------------
+// ─── Subject Breakdown ───────────────────────────────────────
 
 @Composable
 fun SubjectBreakdownSection(subjects: List<Pair<String, Int>>) {
@@ -298,6 +341,15 @@ fun SubjectBreakdownSection(subjects: List<Pair<String, Int>>) {
     LaunchedEffect(Unit) {
         animProgress.animateTo(1f, animationSpec = tween(1000, delayMillis = 200))
     }
+
+    val subjectColors = listOf(
+        AnalyticsPurple,
+        AnalyticsCyan,
+        AnalyticsGreen,
+        AnalyticsOrange,
+        AnalyticsPink,
+        AnalyticsYellow
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -310,33 +362,35 @@ fun SubjectBreakdownSection(subjects: List<Pair<String, Int>>) {
             Icon(
                 imageVector = Icons.Outlined.Category,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = AnalyticsPurple,
                 modifier = Modifier.size(20.dp)
             )
             Text(
                 text = "Subject Breakdown",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
             )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                subjects.forEach { (topic, count) ->
+                subjects.forEachIndexed { index, (topic, count) ->
+                    val color = subjectColors[index % subjectColors.size]
                     SubjectBarRow(
                         topic = topic,
                         count = count,
                         maxCount = maxCount,
-                        progress = animProgress.value
+                        progress = animProgress.value,
+                        barColor = color
                     )
                 }
             }
@@ -345,9 +399,13 @@ fun SubjectBreakdownSection(subjects: List<Pair<String, Int>>) {
 }
 
 @Composable
-fun SubjectBarRow(topic: String, count: Int, maxCount: Int, progress: Float) {
-    val barColor = MaterialTheme.colorScheme.primary
-
+fun SubjectBarRow(
+    topic: String,
+    count: Int,
+    maxCount: Int,
+    progress: Float,
+    barColor: Color
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -356,16 +414,16 @@ fun SubjectBarRow(topic: String, count: Int, maxCount: Int, progress: Float) {
         ) {
             Text(
                 text = topic,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = "count",
+                text = "$count words",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
+                color = barColor
             )
         }
         Box(
@@ -373,17 +431,17 @@ fun SubjectBarRow(topic: String, count: Int, maxCount: Int, progress: Float) {
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction = (count.toFloat() / maxCount) * progress)
+                    .fillMaxWidth(fraction = ((count.toFloat() / maxCount) * progress).coerceIn(0.02f, 1f))
                     .clip(RoundedCornerShape(4.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                barColor.copy(alpha = 0.4f),
+                                barColor.copy(alpha = 0.5f),
                                 barColor
                             )
                         )
@@ -393,7 +451,7 @@ fun SubjectBarRow(topic: String, count: Int, maxCount: Int, progress: Float) {
     }
 }
 
-// --- Quick Stats Grid ----------------------------------------
+// ─── Quick Stats Grid ────────────────────────────────────────
 
 @Composable
 fun QuickStatsGrid(uiState: AnalyticsUiState) {
@@ -407,12 +465,12 @@ fun QuickStatsGrid(uiState: AnalyticsUiState) {
             Icon(
                 imageVector = Icons.Outlined.GridView,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = AnalyticsYellow,
                 modifier = Modifier.size(20.dp)
             )
             Text(
                 text = "At a Glance",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
@@ -423,14 +481,16 @@ fun QuickStatsGrid(uiState: AnalyticsUiState) {
         ) {
             QuickStatCard(
                 icon = Icons.Outlined.Bookmark,
-                value = "{uiState.totalBookmarks}",
+                value = "${uiState.totalBookmarks}",
                 label = "Bookmarks",
+                color = AnalyticsYellow,
                 modifier = Modifier.weight(1f)
             )
             QuickStatCard(
                 icon = Icons.Outlined.CalendarMonth,
-                value = "{uiState.wordsAddedThisMonth}",
+                value = "${uiState.wordsAddedThisMonth}",
                 label = "This Month",
+                color = AnalyticsCyan,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -440,14 +500,16 @@ fun QuickStatsGrid(uiState: AnalyticsUiState) {
         ) {
             QuickStatCard(
                 icon = Icons.Outlined.Speed,
-                value = String.format("%.1f", uiState.averageDifficulty),
+                value = String.format(Locale.US, "%.1f", uiState.averageDifficulty),
                 label = "Avg Difficulty",
+                color = AnalyticsOrange,
                 modifier = Modifier.weight(1f)
             )
             QuickStatCard(
                 icon = Icons.Outlined.Psychology,
-                value = String.format("%.1f", uiState.averageStability),
-                label = "Avg Memory",
+                value = String.format(Locale.US, "%.1f", uiState.averageStability),
+                label = "Avg Stability",
+                color = AnalyticsGreen,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -455,10 +517,16 @@ fun QuickStatsGrid(uiState: AnalyticsUiState) {
 }
 
 @Composable
-fun QuickStatCard(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+fun QuickStatCard(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
         )
@@ -466,22 +534,22 @@ fun QuickStatCard(icon: ImageVector, value: String, label: String, modifier: Mod
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    .background(color.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    tint = color,
+                    modifier = Modifier.size(22.dp)
                 )
             }
             Column {
@@ -493,14 +561,14 @@ fun QuickStatCard(icon: ImageVector, value: String, label: String, modifier: Mod
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
             }
         }
     }
 }
 
-// --- Donut Chart (kept, refined) -----------------------------
+// ─── Donut Chart Section ─────────────────────────────────────
 
 @Composable
 fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
@@ -509,117 +577,143 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
     val familiarCount = distribution["FAMILIAR"] ?: 0
     val masteredCount = distribution["MASTERED"] ?: 0
 
-    val newColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-    val learningColor = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
-    val familiarColor = MaterialTheme.colorScheme.secondary
-    val masteredColor = MaterialTheme.colorScheme.primary
+    val newColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val learningColor = AnalyticsPink
+    val familiarColor = AnalyticsCyan
+    val masteredColor = AnalyticsGreen
 
     val animProgress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1500, delayMillis = 100))
+        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1200, delayMillis = 100))
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Learning Journey",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onBackground
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Canvas(modifier = Modifier.size(180.dp)) {
-                val strokeW = 14.dp.toPx()
-                val radius = (size.minDimension - strokeW) / 2
-                val center = Offset(size.width / 2, size.height / 2)
-                
-                var currentStartAngle = -90f
-                val totalSweep = 360f * animProgress.value
-
-                drawCircle(
-                    color = newColor,
-                    radius = radius,
-                    center = center,
-                    style = Stroke(width = strokeW)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.PieChart,
+                    contentDescription = null,
+                    tint = AnalyticsGreen,
+                    modifier = Modifier.size(20.dp)
                 )
+                Text(
+                    text = "Learning Journey",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(170.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.size(160.dp)) {
+                    val strokeW = 14.dp.toPx()
+                    val radius = (size.minDimension - strokeW) / 2
+                    val center = Offset(size.width / 2, size.height / 2)
+                    
+                    var currentStartAngle = -90f
+                    val totalSweep = 360f * animProgress.value
 
-                if (total > 0 && totalSweep > 0) {
-                    val masteredSweep = (masteredCount.toFloat() / total) * totalSweep
-                    if (masteredSweep > 0) {
-                        drawArc(
-                            color = masteredColor,
-                            startAngle = currentStartAngle,
-                            sweepAngle = masteredSweep,
-                            useCenter = false,
-                            style = Stroke(width = strokeW, cap = StrokeCap.Round),
-                            topLeft = Offset(center.x - radius, center.y - radius),
-                            size = Size(radius * 2, radius * 2)
-                        )
-                        currentStartAngle += masteredSweep
-                    }
+                    drawCircle(
+                        color = newColor,
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = strokeW)
+                    )
 
-                    val familiarSweep = (familiarCount.toFloat() / total) * totalSweep
-                    if (familiarSweep > 0) {
-                        drawArc(
-                            color = familiarColor,
-                            startAngle = currentStartAngle,
-                            sweepAngle = familiarSweep,
-                            useCenter = false,
-                            style = Stroke(width = strokeW, cap = StrokeCap.Round),
-                            topLeft = Offset(center.x - radius, center.y - radius),
-                            size = Size(radius * 2, radius * 2)
-                        )
-                        currentStartAngle += familiarSweep
-                    }
+                    if (total > 0 && totalSweep > 0) {
+                        val masteredSweep = (masteredCount.toFloat() / total) * totalSweep
+                        if (masteredSweep > 0) {
+                            drawArc(
+                                color = masteredColor,
+                                startAngle = currentStartAngle,
+                                sweepAngle = masteredSweep,
+                                useCenter = false,
+                                style = Stroke(width = strokeW, cap = StrokeCap.Round),
+                                topLeft = Offset(center.x - radius, center.y - radius),
+                                size = Size(radius * 2, radius * 2)
+                            )
+                            currentStartAngle += masteredSweep
+                        }
 
-                    val learningSweep = (learningCount.toFloat() / total) * totalSweep
-                    if (learningSweep > 0) {
-                        drawArc(
-                            color = learningColor,
-                            startAngle = currentStartAngle,
-                            sweepAngle = learningSweep,
-                            useCenter = false,
-                            style = Stroke(width = strokeW, cap = StrokeCap.Round),
-                            topLeft = Offset(center.x - radius, center.y - radius),
-                            size = Size(radius * 2, radius * 2)
-                        )
-                        currentStartAngle += learningSweep
+                        val familiarSweep = (familiarCount.toFloat() / total) * totalSweep
+                        if (familiarSweep > 0) {
+                            drawArc(
+                                color = familiarColor,
+                                startAngle = currentStartAngle,
+                                sweepAngle = familiarSweep,
+                                useCenter = false,
+                                style = Stroke(width = strokeW, cap = StrokeCap.Round),
+                                topLeft = Offset(center.x - radius, center.y - radius),
+                                size = Size(radius * 2, radius * 2)
+                            )
+                            currentStartAngle += familiarSweep
+                        }
+
+                        val learningSweep = (learningCount.toFloat() / total) * totalSweep
+                        if (learningSweep > 0) {
+                            drawArc(
+                                color = learningColor,
+                                startAngle = currentStartAngle,
+                                sweepAngle = learningSweep,
+                                useCenter = false,
+                                style = Stroke(width = strokeW, cap = StrokeCap.Round),
+                                topLeft = Offset(center.x - radius, center.y - radius),
+                                size = Size(radius * 2, radius * 2)
+                            )
+                            currentStartAngle += learningSweep
+                        }
                     }
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "$total",
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Total Words",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    )
                 }
             }
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "total",
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Light)
-                )
-                Text(
-                    text = "Words",
-                    style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                )
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                LegendItem("Mastered", masteredCount, masteredColor)
+                LegendItem("Familiar", familiarCount, familiarColor)
+                LegendItem("Learning", learningCount, learningColor)
+                LegendItem("New", newCount, newColor)
             }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            LegendItem("Mastered", masteredCount, masteredColor)
-            LegendItem("Familiar", familiarCount, familiarColor)
-            LegendItem("Learning", learningCount, learningColor)
-            LegendItem("New", newCount, newColor)
         }
     }
 }
 
-// --- Activity Chart (kept, refined) --------------------------
+// ─── Activity Chart (Last 30 Days Bar Chart) ─────────────────
 
 @Composable
 fun PremiumActivityChart(data: List<Int>) {
@@ -627,16 +721,20 @@ fun PremiumActivityChart(data: List<Int>) {
     val maxVal = chronologicalData.maxOrNull()?.coerceAtLeast(1) ?: 1
     val numDays = data.size
     
-    val topColor = MaterialTheme.colorScheme.primary
-    val bottomColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-    val gridLineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+    val barBrush = Brush.verticalGradient(
+        colors = listOf(
+            AnalyticsYellow,
+            AnalyticsOrange
+        )
+    )
+    val gridLineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)
 
     val animProgress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1000, delayMillis = 300))
+        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1000, delayMillis = 200))
     }
 
-    val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("d MMM", Locale.getDefault())
     val labels = List(numDays) { i ->
         val cal = Calendar.getInstance()
         cal.add(Calendar.DAY_OF_YEAR, -(numDays - 1 - i))
@@ -649,121 +747,149 @@ fun PremiumActivityChart(data: List<Int>) {
         scrollState.animateScrollTo(scrollState.maxValue, animationSpec = tween(500))
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Activity (Last 30 Days)",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onBackground
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
         )
-        Spacer(modifier = Modifier.height(40.dp))
-        
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp)
         ) {
-            val itemWidth = 60.dp
-            
-            Box(
-                modifier = Modifier
-                    .width(itemWidth * numDays)
-                    .height(180.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val canvasHeight = size.height
-                    
-                    val gridLines = 4
-                    for (i in 0..gridLines) {
-                        val y = canvasHeight * (i.toFloat() / gridLines)
-                        drawLine(
-                            color = gridLineColor,
-                            start = Offset(0f, y),
-                            end = Offset(size.width, y),
-                            strokeWidth = 1.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-                        )
-                    }
-                    
-                    val brush = Brush.verticalGradient(colors = listOf(topColor, bottomColor))
-                    val barWidthPx = 16.dp.toPx()
-                    val spacingPx = itemWidth.toPx()
-                    
-                    for (i in 0 until numDays) {
-                        val value = chronologicalData[i]
-                        val heightRatio = (value.toFloat() / maxVal) * animProgress.value
-                        val barHeight = canvasHeight * heightRatio
+                Icon(
+                    imageVector = Icons.Outlined.BarChart,
+                    contentDescription = null,
+                    tint = AnalyticsYellow,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Activity (Last 30 Days)",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            val itemWidth = 54.dp
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(itemWidth * numDays)
+                        .height(160.dp)
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val canvasHeight = size.height
                         
-                        val x = (i * spacingPx) + (spacingPx - barWidthPx) / 2
-                        val y = canvasHeight - barHeight
-                        
-                        if (value > 0) {
-                            drawRoundRect(
-                                brush = brush,
-                                topLeft = Offset(x, y),
-                                size = Size(barWidthPx, barHeight),
-                                cornerRadius = CornerRadius(barWidthPx / 2, barWidthPx / 2)
-                            )
-                        } else {
-                            drawRoundRect(
+                        val gridLines = 3
+                        for (i in 0..gridLines) {
+                            val y = canvasHeight * (i.toFloat() / gridLines)
+                            drawLine(
                                 color = gridLineColor,
-                                topLeft = Offset(x, canvasHeight - 2.dp.toPx()),
-                                size = Size(barWidthPx, 2.dp.toPx()),
-                                cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                start = Offset(0f, y),
+                                end = Offset(size.width, y),
+                                strokeWidth = 1.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
                             )
+                        }
+                        
+                        val barWidthPx = 14.dp.toPx()
+                        val spacingPx = itemWidth.toPx()
+                        
+                        for (i in 0 until numDays) {
+                            val value = chronologicalData[i]
+                            val heightRatio = (value.toFloat() / maxVal) * animProgress.value
+                            val barHeight = canvasHeight * heightRatio
+                            
+                            val x = (i * spacingPx) + (spacingPx - barWidthPx) / 2
+                            val y = canvasHeight - barHeight
+                            
+                            if (value > 0) {
+                                drawRoundRect(
+                                    brush = barBrush,
+                                    topLeft = Offset(x, y),
+                                    size = Size(barWidthPx, barHeight),
+                                    cornerRadius = CornerRadius(barWidthPx / 2, barWidthPx / 2)
+                                )
+                            } else {
+                                drawRoundRect(
+                                    color = gridLineColor,
+                                    topLeft = Offset(x, canvasHeight - 2.dp.toPx()),
+                                    size = Size(barWidthPx, 2.dp.toPx()),
+                                    cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState, enabled = false)
-        ) {
-            val itemWidth = 60.dp
             
-            labels.forEachIndexed { index, label ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(itemWidth)
-                ) {
-                    val value = chronologicalData[index]
-                    Text(
-                        text = if (value > 0) "value" else "",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState, enabled = false)
+            ) {
+                labels.forEachIndexed { index, label ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(itemWidth)
+                    ) {
+                        val value = chronologicalData[index]
+                        Text(
+                            text = if (value > 0) "$value" else "",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AnalyticsYellow
+                            )
                         )
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        maxLines = 1
-                    )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// --- Legend Item ----------------------------------------------
+// ─── Legend Item ──────────────────────────────────────────────
 
 @Composable
 fun LegendItem(label: String, count: Int, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color))
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(text = label, style = MaterialTheme.typography.labelSmall)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
         }
-        Text(text = "count", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = "$count",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
