@@ -1,0 +1,6 @@
+{
+  "name": "LexiUPSC",
+  "description": "My Personal UPSC Dictionary - Premium offline-first dictionary for UPSC vocabulary with instant SQLite search, document parser, stats, and search history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

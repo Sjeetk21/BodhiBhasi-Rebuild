@@ -1,0 +1,26 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Open Book Silhouette Centered in Safe Zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,26 C43.2,26 31.8,29 26,32 L26,76 C31.8,73 43.2,70 54,74 C64.8,70 76.2,73 82,76 L82,32 C76.2,29 64.8,26 54,26 Z" />
+        
+    <!-- Book Middle Page Divider -->
+    <path
+        android:fillColor="#ECE6F0"
+        android:pathData="M53,28 L55,28 L55,75 L53,75 Z" />
+        
+    <!-- Magnifying Glass Icon over Book -->
+    <path
+        android:fillColor="#EADDFF"
+        android:pathData="M72,58 C72,64.63 66.63,70 60,70 C56.69,70 53.7,68.65 51.58,66.42 L42,76 L38,72 L47.58,62.42 C45.35,60.3 44,57.31 44,54 C44,47.37 49.37,42 56,42 C62.63,42 68,47.37 68,54 C68,55.5 67.5,57 66.8,58.3 L72,58 Z" />
+        
+    <!-- Magnifying Glass Lens Hole -->
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M56,46 C51.58,46 48,49.58 48,54 C48,58.42 51.58,62 56,62 C60.42,62 64,58.42 64,54 C64,49.58 60.42,46 56,46 Z" />
+</vector>
