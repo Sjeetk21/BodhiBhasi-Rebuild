@@ -1,4 +1,4 @@
-package com.example
+﻿package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -312,7 +312,7 @@ class MainActivity : ComponentActivity() {
                             )
                             LearningAnalyticsScreen(
                                 viewModel = analyticsViewModel,
-                                onBack = { navController.popBackStack() }
+                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
 
@@ -424,3 +424,4 @@ data class BottomNavItem(
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector
 )
+

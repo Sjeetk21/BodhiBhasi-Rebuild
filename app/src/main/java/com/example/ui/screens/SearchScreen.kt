@@ -1,9 +1,11 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -498,6 +500,7 @@ fun SearchScreen(
     var subjectExpanded by remember { mutableStateOf(false) }
     var chapterExpanded by remember { mutableStateOf(false) }
 
+    // â”€â”€â”€ AI Input Dialog (Redesigned with scrollable layout) â”€â”€â”€
     if (showAiInputDialog && generatedWords.isEmpty()) {
         AlertDialog(
             onDismissRequest = { showAiInputDialog = false },
@@ -507,7 +510,7 @@ fun SearchScreen(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 12.dp)
                 .systemBarsPadding()
                 .imePadding(),
             title = {
@@ -529,57 +532,60 @@ fun SearchScreen(
             },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 400.dp) // Scrollable constraints
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Enter words to define.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // 3-State Meaning Style Toggle
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Meaning Detail Level",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    // â”€â”€ Section 1: Meaning Style â”€â”€
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                         )
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            MeaningStyle.values().forEachIndexed { index, style ->
-                                SegmentedButton(
-                                    selected = selectedMeaningStyle == style,
-                                    onClick = { viewModel.setMeaningStyle(style) },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = MeaningStyle.values().size
-                                    )
-                                ) {
-                                    Text(
-                                        text = style.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (selectedMeaningStyle == style) FontWeight.Bold else FontWeight.Normal
-                                    )
+                            Text(
+                                text = "Meaning Detail Level",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                MeaningStyle.values().forEachIndexed { index, style ->
+                                    SegmentedButton(
+                                        selected = selectedMeaningStyle == style,
+                                        onClick = { viewModel.setMeaningStyle(style) },
+                                        shape = SegmentedButtonDefaults.itemShape(
+                                            index = index,
+                                            count = MeaningStyle.values().size
+                                        )
+                                    ) {
+                                        Text(
+                                            text = style.label,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (selectedMeaningStyle == style) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
                                 }
                             }
+                            Text(
+                                text = selectedMeaningStyle.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontStyle = FontStyle.Italic,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
                         }
-                        Text(
-                            text = selectedMeaningStyle.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontStyle = FontStyle.Italic,
-                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-                        )
                     }
-                    
+
                     if (aiStatus?.startsWith("Error") == true) {
                         Text(
                             text = aiStatus ?: "",
@@ -588,83 +594,105 @@ fun SearchScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Same Subject/Chapter for all",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(
-                            checked = sameSubjectAndChapter,
-                            onCheckedChange = { sameSubjectAndChapter = it }
-                        )
-                    }
 
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.weight(1f, fill = false)
+                    // â”€â”€ Section 2: Words Input â”€â”€
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                        )
                     ) {
-                        items(aiWordsList.size) { index ->
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(8.dp)) {
-                                    OutlinedTextField(
-                                        value = aiWordsList[index].word,
-                                        onValueChange = { newWord ->
-                                            val newList = aiWordsList.toMutableList()
-                                            newList[index] = newList[index].copy(word = newWord)
-                                            aiWordsList = newList
-                                        },
-                                        label = { Text("Word ${index + 1}") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
+                                Text(
+                                    text = "Words to Define",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Same for all",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
-                                    OutlinedTextField(
-                                        value = aiWordsList[index].context ?: "",
-                                        onValueChange = { newContext ->
-                                            val newList = aiWordsList.toMutableList()
-                                            newList[index] = newList[index].copy(context = newContext)
-                                            aiWordsList = newList
-                                        },
-                                        label = { Text("Context for Word ${index + 1} (Optional)") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
+                                    Switch(
+                                        checked = sameSubjectAndChapter,
+                                        onCheckedChange = { sameSubjectAndChapter = it },
+                                        modifier = Modifier.height(24.dp)
                                     )
-                                    if (!sameSubjectAndChapter) {
+                                }
+                            }
+
+                            aiWordsList.forEachIndexed { index, wordReq ->
+                                OutlinedTextField(
+                                    value = wordReq.word,
+                                    onValueChange = { newWord ->
+                                        val newList = aiWordsList.toMutableList()
+                                        newList[index] = newList[index].copy(word = newWord)
+                                        aiWordsList = newList
+                                    },
+                                    label = { Text("Word ${index + 1}") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    trailingIcon = {
+                                        if (aiWordsList.size > 1) {
+                                            IconButton(
+                                                onClick = { aiWordsList = aiWordsList.toMutableList().also { it.removeAt(index) } },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                            }
+                                        }
+                                    }
+                                )
+                                
+                                if (!sameSubjectAndChapter) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
                                         OutlinedTextField(
-                                            value = aiWordsList[index].subject,
+                                            value = wordReq.subject,
                                             onValueChange = { newSubj ->
                                                 val newList = aiWordsList.toMutableList()
                                                 newList[index] = newList[index].copy(subject = newSubj)
                                                 aiWordsList = newList
                                             },
                                             label = { Text("Subject") },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
                                         )
                                         OutlinedTextField(
-                                            value = aiWordsList[index].chapter,
+                                            value = wordReq.chapter,
                                             onValueChange = { newChap ->
                                                 val newList = aiWordsList.toMutableList()
                                                 newList[index] = newList[index].copy(chapter = newChap)
                                                 aiWordsList = newList
                                             },
                                             label = { Text("Chapter") },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
                                         )
                                     }
                                 }
                             }
-                        }
-                        if (aiWordsList.size < 20) {
-                            item {
+
+                            if (aiWordsList.size < 20) {
                                 TextButton(
                                     onClick = { aiWordsList = aiWordsList + com.example.model.AiWordRequest(word = "", subject = if(sameSubjectAndChapter) aiSubjectInput else "", chapter = if(sameSubjectAndChapter) aiChapterInput else "") },
                                     modifier = Modifier.fillMaxWidth()
@@ -677,68 +705,91 @@ fun SearchScreen(
                         }
                     }
 
+                    // â”€â”€ Section 3: Subject & Chapter (when same for all) â”€â”€
                     if (sameSubjectAndChapter) {
-                        val filteredSubjects = allSubjects.filter { it.contains(aiSubjectInput, ignoreCase = true) }
-                        
-                        OutlinedTextField(
-                            value = aiSubjectInput,
-                            onValueChange = { aiSubjectInput = it; subjectExpanded = true },
-                            label = { Text("Subject") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) subjectExpanded = true }
-                        )
-                        
-                        androidx.compose.animation.AnimatedVisibility(visible = subjectExpanded && filteredSubjects.isNotEmpty()) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 200.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                LazyColumn {
-                                    items(filteredSubjects.size) { index ->
-                                        val selectionOption = filteredSubjects[index]
-                                        DropdownMenuItem(
-                                            text = { Text(selectionOption) },
-                                            onClick = {
-                                                aiSubjectInput = selectionOption
-                                                subjectExpanded = false
+                                Text(
+                                    text = "Categorization",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                val filteredSubjects = allSubjects.filter { it.contains(aiSubjectInput, ignoreCase = true) }
+                                
+                                OutlinedTextField(
+                                    value = aiSubjectInput,
+                                    onValueChange = { aiSubjectInput = it; subjectExpanded = true },
+                                    label = { Text("Subject") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) subjectExpanded = true }
+                                )
+                                
+                                AnimatedVisibility(visible = subjectExpanded && filteredSubjects.isNotEmpty()) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 150.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        LazyColumn {
+                                            items(filteredSubjects.size) { index ->
+                                                val selectionOption = filteredSubjects[index]
+                                                DropdownMenuItem(
+                                                    text = { Text(selectionOption) },
+                                                    onClick = {
+                                                        aiSubjectInput = selectionOption
+                                                        subjectExpanded = false
+                                                    }
+                                                )
                                             }
-                                        )
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        
-                        val filteredChapters = allChapters.filter { it.contains(aiChapterInput, ignoreCase = true) }
-                        
-                        OutlinedTextField(
-                            value = aiChapterInput,
-                            onValueChange = { aiChapterInput = it; chapterExpanded = true },
-                            label = { Text("Chapter") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) chapterExpanded = true }
-                        )
-                        
-                        androidx.compose.animation.AnimatedVisibility(visible = chapterExpanded && filteredChapters.isNotEmpty()) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 200.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                            ) {
-                                LazyColumn {
-                                    items(filteredChapters.size) { index ->
-                                        val selectionOption = filteredChapters[index]
-                                        DropdownMenuItem(
-                                            text = { Text(selectionOption) },
-                                            onClick = {
-                                                aiChapterInput = selectionOption
-                                                chapterExpanded = false
+                                
+                                val filteredChapters = allChapters.filter { it.contains(aiChapterInput, ignoreCase = true) }
+                                
+                                OutlinedTextField(
+                                    value = aiChapterInput,
+                                    onValueChange = { aiChapterInput = it; chapterExpanded = true },
+                                    label = { Text("Chapter") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) chapterExpanded = true }
+                                )
+                                
+                                AnimatedVisibility(visible = chapterExpanded && filteredChapters.isNotEmpty()) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 150.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    ) {
+                                        LazyColumn {
+                                            items(filteredChapters.size) { index ->
+                                                val selectionOption = filteredChapters[index]
+                                                DropdownMenuItem(
+                                                    text = { Text(selectionOption) },
+                                                    onClick = {
+                                                        aiChapterInput = selectionOption
+                                                        chapterExpanded = false
+                                                    }
+                                                )
                                             }
-                                        )
+                                        }
                                     }
                                 }
                             }
@@ -786,96 +837,135 @@ fun SearchScreen(
         )
     }
 
+    // â”€â”€â”€ Review Generated Words Dialog (Improved layout) â”€â”€â”€
     if (showAiInputDialog && generatedWords.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { 
                 showAiInputDialog = false 
                 viewModel.clearAiStatus()
             },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+                .systemBarsPadding()
+                .imePadding(),
             title = {
-                Text(
-                    text = "Review Generated Words",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    if (aiStatus?.startsWith("Error") == true) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.RateReview,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
                         Text(
-                            text = aiStatus ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            text = "Review Generated Words",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${generatedWords.size} words ready",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        itemsIndexed(generatedWords) { index, word ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                ),
-                                shape = RoundedCornerShape(16.dp)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (aiStatus?.startsWith("Error") == true) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = aiStatus ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+                    
+                    generatedWords.forEachIndexed { index, word ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = word.word,
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        word.chapter?.let { ch ->
-                                            if (ch.isNotBlank()) {
-                                                Badge(
-                                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                ) {
-                                                    Text(
-                                                        text = ch,
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                                    )
-                                                }
+                                    Text(
+                                        text = word.word,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    word.chapter?.let { ch ->
+                                        if (ch.isNotBlank()) {
+                                            Badge(
+                                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            ) {
+                                                Text(
+                                                    text = ch,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                )
                                             }
                                         }
                                     }
+                                }
 
-                                    OutlinedTextField(
-                                        value = word.meaning,
-                                        onValueChange = { newMeaning ->
-                                            viewModel.updateGeneratedWordMeaning(index, newMeaning)
-                                        },
-                                        label = { Text("Meaning (Editable)") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textStyle = MaterialTheme.typography.bodyMedium,
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                                        )
+                                OutlinedTextField(
+                                    value = word.meaning,
+                                    onValueChange = { newMeaning ->
+                                        viewModel.updateGeneratedWordMeaning(index, newMeaning)
+                                    },
+                                    label = { Text("Meaning") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textStyle = MaterialTheme.typography.bodyMedium,
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
                                     )
+                                )
 
-                                    if (word.examples.isNotEmpty()) {
-                                        Text(
-                                            text = "e.g. \"${word.examples.first()}\"",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                            fontStyle = FontStyle.Italic
-                                        )
-                                    }
+                                if (word.examples.isNotEmpty()) {
+                                    Text(
+                                        text = "e.g. \"${word.examples.first()}\"",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        fontStyle = FontStyle.Italic,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
@@ -1014,3 +1104,5 @@ fun SearchWordItem(
         }
     }
 }
+
+

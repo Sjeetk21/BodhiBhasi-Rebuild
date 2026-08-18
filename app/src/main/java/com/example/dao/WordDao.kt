@@ -299,6 +299,25 @@ interface WordDao {
         ORDER BY lastRevisedTimestamp DESC
     """)
     suspend fun getAllRevisionTimestamps(): List<Long>
+    // --- Enhanced Analytics Queries ---
+
+    @Query("SELECT COUNT(*) FROM bookmarks")
+    suspend fun getBookmarkCount(): Int
+
+    @Query("SELECT COUNT(*) FROM words WHERE dateAdded >= :sinceTimestamp")
+    suspend fun getWordsAddedSince(sinceTimestamp: Long): Int
+
+    @Query("SELECT topic, COUNT(*) as count FROM words WHERE topic IS NOT NULL AND topic != '' GROUP BY topic ORDER BY count DESC")
+    suspend fun getSubjectDistribution(): List<com.example.entity.SubjectCount>
+
+    @Query("SELECT COUNT(*) FROM vocabulary_metadata WHERE consecutiveFailures > 2")
+    suspend fun getDifficultWordsCount(): Int
+
+    @Query("SELECT AVG(difficultyFactor) FROM vocabulary_metadata")
+    suspend fun getAverageDifficulty(): Double?
+
+    @Query("SELECT AVG(stability) FROM vocabulary_metadata WHERE learningStatus != 'NEW'")
+    suspend fun getAverageStability(): Double?
 
     @Transaction
     @Query("SELECT * FROM words WHERE id IN (:ids)")

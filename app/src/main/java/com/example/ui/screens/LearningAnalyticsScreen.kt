@@ -1,17 +1,22 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,14 +25,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.viewmodel.AnalyticsUiState
 import com.example.viewmodel.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -37,17 +43,25 @@ import java.util.Locale
 @Composable
 fun LearningAnalyticsScreen(
     viewModel: AnalyticsViewModel,
-    onBack: () -> Unit
+    onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Analytics", fontWeight = FontWeight.Light, letterSpacing = 1.sp) },
+                title = {
+                    Text(
+                        text = "Analytics",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -71,57 +85,82 @@ fun LearningAnalyticsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 20.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(40.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 
-                // Typography-Driven Hero Section
+                // 1. Hero Stats Row with Streak
                 HeroStatsSection(uiState)
 
-                // Animated Donut Chart for Learning Distribution
+                // 2. Learning Journey Donut Chart
                 PremiumLearningDistribution(
                     distribution = uiState.learningDistribution,
                     total = uiState.totalWordsTracked.coerceAtLeast(1)
                 )
 
-                // Animated 30-Day Activity Chart with Gradients
+                // 3. Weekly Snapshot Card
+                WeeklySnapshotCard(uiState)
+
+                // 4. Subject Breakdown
+                if (uiState.subjectDistribution.isNotEmpty()) {
+                    SubjectBreakdownSection(uiState.subjectDistribution)
+                }
+
+                // 5. Activity (Last 30 Days)
                 PremiumActivityChart(data = uiState.dailyRevisionsHistory)
+
+                // 6. Quick Stats Grid
+                QuickStatsGrid(uiState)
                 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
 }
 
+// --- Hero Stats ----------------------------------------------
+
 @Composable
-fun HeroStatsSection(uiState: com.example.viewmodel.AnalyticsUiState) {
+fun HeroStatsSection(uiState: AnalyticsUiState) {
     val retentionRate = if (uiState.totalWordsTracked > 0) {
         (uiState.totalWordsMastered.toFloat() / uiState.totalWordsTracked * 100).toInt()
     } else 0
 
-    Row(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
     ) {
-        HeroStat("Words Tracked", "${uiState.totalWordsTracked}", modifier = Modifier.weight(1f))
-        
-        Divider(
-            modifier = Modifier.height(40.dp).width(1.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        )
-        
-        HeroStat("Mastered", "${uiState.totalWordsMastered}", modifier = Modifier.weight(1f))
-        
-        Divider(
-            modifier = Modifier.height(40.dp).width(1.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        )
-        
-        HeroStat("Retention", "$retentionRate%", modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HeroStat("Words", "{uiState.totalWordsTracked}", modifier = Modifier.weight(1f))
+            VerticalDividerThin()
+            HeroStat("Mastered", "{uiState.totalWordsMastered}", modifier = Modifier.weight(1f))
+            VerticalDividerThin()
+            HeroStat("Retention", "retentionRate%", modifier = Modifier.weight(1f))
+            VerticalDividerThin()
+            HeroStat("Streak", if (uiState.learningStreak > 0) "{uiState.learningStreak}\uD83D\uDD25" else "0", modifier = Modifier.weight(1f))
+        }
     }
+}
+
+@Composable
+fun VerticalDividerThin() {
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .width(1.dp)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+    )
 }
 
 @Composable
@@ -132,23 +171,336 @@ fun HeroStat(title: String, value: String, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = FontWeight.Light,
-                fontSize = 32.sp
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp
             ),
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.3.sp
             ),
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
         )
     }
 }
+
+// --- Weekly Snapshot Card ------------------------------------
+
+@Composable
+fun WeeklySnapshotCard(uiState: AnalyticsUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+        ),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                )
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Insights,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Weekly Snapshot",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                SnapshotMetric(
+                    icon = Icons.Outlined.Add,
+                    value = "{uiState.wordsAddedThisWeek}",
+                    label = "Added",
+                    modifier = Modifier.weight(1f)
+                )
+                SnapshotMetric(
+                    icon = Icons.Outlined.TrendingUp,
+                    value = String.format("%.1f", uiState.averageDailyRevisions),
+                    label = "Avg/Day",
+                    modifier = Modifier.weight(1f)
+                )
+                SnapshotMetric(
+                    icon = Icons.Outlined.EmojiEvents,
+                    value = "{uiState.bestDay}",
+                    label = "Best Day",
+                    modifier = Modifier.weight(1f)
+                )
+                SnapshotMetric(
+                    icon = Icons.Outlined.Warning,
+                    value = "{uiState.difficultWords}",
+                    label = "Tough",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SnapshotMetric(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+        )
+    }
+}
+
+// --- Subject Breakdown ---------------------------------------
+
+@Composable
+fun SubjectBreakdownSection(subjects: List<Pair<String, Int>>) {
+    val maxCount = subjects.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
+
+    val animProgress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        animProgress.animateTo(1f, animationSpec = tween(1000, delayMillis = 200))
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Category,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "Subject Breakdown",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                subjects.forEach { (topic, count) ->
+                    SubjectBarRow(
+                        topic = topic,
+                        count = count,
+                        maxCount = maxCount,
+                        progress = animProgress.value
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SubjectBarRow(topic: String, count: Int, maxCount: Int, progress: Float) {
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = topic,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "count",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = (count.toFloat() / maxCount) * progress)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                barColor.copy(alpha = 0.4f),
+                                barColor
+                            )
+                        )
+                    )
+            )
+        }
+    }
+}
+
+// --- Quick Stats Grid ----------------------------------------
+
+@Composable
+fun QuickStatsGrid(uiState: AnalyticsUiState) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.GridView,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "At a Glance",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            QuickStatCard(
+                icon = Icons.Outlined.Bookmark,
+                value = "{uiState.totalBookmarks}",
+                label = "Bookmarks",
+                modifier = Modifier.weight(1f)
+            )
+            QuickStatCard(
+                icon = Icons.Outlined.CalendarMonth,
+                value = "{uiState.wordsAddedThisMonth}",
+                label = "This Month",
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            QuickStatCard(
+                icon = Icons.Outlined.Speed,
+                value = String.format("%.1f", uiState.averageDifficulty),
+                label = "Avg Difficulty",
+                modifier = Modifier.weight(1f)
+            )
+            QuickStatCard(
+                icon = Icons.Outlined.Psychology,
+                value = String.format("%.1f", uiState.averageStability),
+                label = "Avg Memory",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickStatCard(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+// --- Donut Chart (kept, refined) -----------------------------
 
 @Composable
 fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
@@ -162,13 +514,9 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
     val familiarColor = MaterialTheme.colorScheme.secondary
     val masteredColor = MaterialTheme.colorScheme.primary
 
-    // Animation state
     val animProgress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        animProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1500, delayMillis = 100)
-        )
+        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1500, delayMillis = 100))
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -177,23 +525,22 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp),
+                .height(200.dp),
             contentAlignment = Alignment.Center
         ) {
-            Canvas(modifier = Modifier.size(200.dp)) {
-                val strokeW = 16.dp.toPx()
+            Canvas(modifier = Modifier.size(180.dp)) {
+                val strokeW = 14.dp.toPx()
                 val radius = (size.minDimension - strokeW) / 2
                 val center = Offset(size.width / 2, size.height / 2)
                 
                 var currentStartAngle = -90f
                 val totalSweep = 360f * animProgress.value
 
-                // Draw Track (Empty State)
                 drawCircle(
                     color = newColor,
                     radius = radius,
@@ -202,7 +549,6 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
                 )
 
                 if (total > 0 && totalSweep > 0) {
-                    // Draw Mastered
                     val masteredSweep = (masteredCount.toFloat() / total) * totalSweep
                     if (masteredSweep > 0) {
                         drawArc(
@@ -217,7 +563,6 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
                         currentStartAngle += masteredSweep
                     }
 
-                    // Draw Familiar
                     val familiarSweep = (familiarCount.toFloat() / total) * totalSweep
                     if (familiarSweep > 0) {
                         drawArc(
@@ -232,7 +577,6 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
                         currentStartAngle += familiarSweep
                     }
 
-                    // Draw Learning
                     val learningSweep = (learningCount.toFloat() / total) * totalSweep
                     if (learningSweep > 0) {
                         drawArc(
@@ -249,11 +593,10 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
                 }
             }
 
-            // Center Text
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "$total",
-                    style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Light)
+                    text = "total",
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Light)
                 )
                 Text(
                     text = "Words",
@@ -262,9 +605,8 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Premium Legend
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -277,9 +619,11 @@ fun PremiumLearningDistribution(distribution: Map<String, Int>, total: Int) {
     }
 }
 
+// --- Activity Chart (kept, refined) --------------------------
+
 @Composable
 fun PremiumActivityChart(data: List<Int>) {
-    val chronologicalData = data.reversed() // So index 0 is oldest, last is today
+    val chronologicalData = data.reversed()
     val maxVal = chronologicalData.maxOrNull()?.coerceAtLeast(1) ?: 1
     val numDays = data.size
     
@@ -287,13 +631,9 @@ fun PremiumActivityChart(data: List<Int>) {
     val bottomColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
     val gridLineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
 
-    // Animation state
     val animProgress = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
-        animProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1000, delayMillis = 300)
-        )
+        animProgress.animateTo(1f, animationSpec = tween(durationMillis = 1000, delayMillis = 300))
     }
 
     val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
@@ -305,7 +645,6 @@ fun PremiumActivityChart(data: List<Int>) {
     
     val scrollState = rememberScrollState()
     
-    // Auto-scroll to the end (latest date)
     LaunchedEffect(chronologicalData) {
         scrollState.animateScrollTo(scrollState.maxValue, animationSpec = tween(500))
     }
@@ -316,7 +655,7 @@ fun PremiumActivityChart(data: List<Int>) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(40.dp)) // Space for floating numbers
+        Spacer(modifier = Modifier.height(40.dp))
         
         Row(
             modifier = Modifier
@@ -330,12 +669,9 @@ fun PremiumActivityChart(data: List<Int>) {
                     .width(itemWidth * numDays)
                     .height(180.dp)
             ) {
-                Canvas(
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasHeight = size.height
                     
-                    // Draw faint grid lines spanning entire width
                     val gridLines = 4
                     for (i in 0..gridLines) {
                         val y = canvasHeight * (i.toFloat() / gridLines)
@@ -348,10 +684,7 @@ fun PremiumActivityChart(data: List<Int>) {
                         )
                     }
                     
-                    val brush = Brush.verticalGradient(
-                        colors = listOf(topColor, bottomColor)
-                    )
-
+                    val brush = Brush.verticalGradient(colors = listOf(topColor, bottomColor))
                     val barWidthPx = 16.dp.toPx()
                     val spacingPx = itemWidth.toPx()
                     
@@ -371,7 +704,6 @@ fun PremiumActivityChart(data: List<Int>) {
                                 cornerRadius = CornerRadius(barWidthPx / 2, barWidthPx / 2)
                             )
                         } else {
-                            // Elegant tiny dash for zero values
                             drawRoundRect(
                                 color = gridLineColor,
                                 topLeft = Offset(x, canvasHeight - 2.dp.toPx()),
@@ -386,11 +718,10 @@ fun PremiumActivityChart(data: List<Int>) {
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Labels
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState, enabled = false) // Synchronized scroll with the chart above
+                .horizontalScroll(scrollState, enabled = false)
         ) {
             val itemWidth = 60.dp
             
@@ -401,7 +732,7 @@ fun PremiumActivityChart(data: List<Int>) {
                 ) {
                     val value = chronologicalData[index]
                     Text(
-                        text = if (value > 0) "$value" else "",
+                        text = if (value > 0) "value" else "",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -420,6 +751,8 @@ fun PremiumActivityChart(data: List<Int>) {
     }
 }
 
+// --- Legend Item ----------------------------------------------
+
 @Composable
 fun LegendItem(label: String, count: Int, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -431,6 +764,6 @@ fun LegendItem(label: String, count: Int, color: Color) {
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = label, style = MaterialTheme.typography.labelSmall)
         }
-        Text(text = "$count", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(text = "count", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
     }
 }

@@ -16,7 +16,17 @@ data class AnalyticsUiState(
     val totalWordsMastered: Int = 0,
     val learningStreak: Int = 0,
     val learningDistribution: Map<String, Int> = emptyMap(),
-    val dailyRevisionsHistory: List<Int> = List(30) { 0 }, // Index 0 is today, 1 is yesterday, etc.
+    val dailyRevisionsHistory: List<Int> = List(30) { 0 },
+    // New analytics fields
+    val totalBookmarks: Int = 0,
+    val wordsAddedThisWeek: Int = 0,
+    val wordsAddedThisMonth: Int = 0,
+    val averageDailyRevisions: Float = 0f,
+    val bestDay: Int = 0,
+    val subjectDistribution: List<Pair<String, Int>> = emptyList(),
+    val difficultWords: Int = 0,
+    val averageDifficulty: Float = 2.5f,
+    val averageStability: Float = 1.0f,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
@@ -44,9 +54,9 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
 
                 val totalTracked = distribution.values.sum()
                 val mastered = distribution["MASTERED"] ?: 0
-                val learned = repository.getWordsLearnedCount() // Or sum of LEARNING, FAMILIAR, MASTERED
+                val learned = repository.getWordsLearnedCount()
 
-                // 2. Compute Revision Streak and 7-Day Activity
+                // 2. Compute Revision Streak and 30-Day Activity
                 val timestamps = repository.getAllRevisionTimestamps()
                 var streak = 0
                 val historyDays = MutableList(30) { 0 }
@@ -60,12 +70,10 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                 val todayStart = calendar.timeInMillis
 
                 if (timestamps.isNotEmpty()) {
-                    // Bucketing timestamps into days offset from today
                     for (ts in timestamps) {
                         val diffMillis = todayTime - ts
                         val diffDays = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
                         if (diffDays in 0..29) {
-                            // Accurate day boundary check:
                             val c = Calendar.getInstance().apply { timeInMillis = ts }
                             c.set(Calendar.HOUR_OF_DAY, 0)
                             c.set(Calendar.MINUTE, 0)
@@ -79,7 +87,6 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     }
 
-                    // Compute Streak
                     val uniqueDays = timestamps.map { ts ->
                         val cal = Calendar.getInstance().apply { timeInMillis = ts }
                         cal.set(Calendar.HOUR_OF_DAY, 0)
@@ -126,6 +133,30 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
 
+                // 3. New analytics data
+                val bookmarks = repository.getBookmarkCount()
+                
+                val weekAgo = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, -7)
+                }.timeInMillis
+                val monthAgo = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, -30)
+                }.timeInMillis
+                val wordsThisWeek = repository.getWordsAddedSince(weekAgo)
+                val wordsThisMonth = repository.getWordsAddedSince(monthAgo)
+                
+                val activeDays = historyDays.count { it > 0 }
+                val avgDaily = if (activeDays > 0) historyDays.sum().toFloat() / 30f else 0f
+                val best = historyDays.maxOrNull() ?: 0
+                
+                val subjectDist = repository.getSubjectDistribution()
+                    .map { it.topic to it.count }
+                    .take(8)
+                
+                val difficult = repository.getDifficultWordsCount()
+                val avgDiff = repository.getAverageDifficulty().toFloat()
+                val avgStab = repository.getAverageStability().toFloat()
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     totalWordsTracked = totalTracked,
@@ -133,7 +164,16 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                     totalWordsMastered = mastered,
                     learningStreak = streak,
                     learningDistribution = distribution,
-                    dailyRevisionsHistory = historyDays
+                    dailyRevisionsHistory = historyDays,
+                    totalBookmarks = bookmarks,
+                    wordsAddedThisWeek = wordsThisWeek,
+                    wordsAddedThisMonth = wordsThisMonth,
+                    averageDailyRevisions = avgDaily,
+                    bestDay = best,
+                    subjectDistribution = subjectDist,
+                    difficultWords = difficult,
+                    averageDifficulty = avgDiff,
+                    averageStability = avgStab
                 )
             } catch (e: Exception) {
                 e.printStackTrace()

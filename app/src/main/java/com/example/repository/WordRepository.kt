@@ -1,4 +1,4 @@
-package com.example.repository
+﻿package com.example.repository
 
 import com.example.dao.WordDao
 import com.example.entity.SearchHistoryEntity
@@ -206,6 +206,30 @@ class WordRepository(private val wordDao: WordDao) {
     
     suspend fun getLearningStatusCounts(): List<com.example.entity.LearningStatusCount> {
         return wordDao.getLearningStatusCounts()
+    }
+
+    suspend fun getBookmarkCount(): Int {
+        return wordDao.getBookmarkCount()
+    }
+
+    suspend fun getWordsAddedSince(sinceTimestamp: Long): Int {
+        return wordDao.getWordsAddedSince(sinceTimestamp)
+    }
+
+    suspend fun getSubjectDistribution(): List<com.example.entity.SubjectCount> {
+        return wordDao.getSubjectDistribution()
+    }
+
+    suspend fun getDifficultWordsCount(): Int {
+        return wordDao.getDifficultWordsCount()
+    }
+
+    suspend fun getAverageDifficulty(): Double {
+        return wordDao.getAverageDifficulty() ?: 2.5
+    }
+
+    suspend fun getAverageStability(): Double {
+        return wordDao.getAverageStability() ?: 1.0
     }
 
     /**
@@ -550,7 +574,7 @@ class WordRepository(private val wordDao: WordDao) {
             - "Example": Provide ONE simple sentence (10-20 words) per example in the context of the subject/chapter.
             - "Memory Hook": 2-4 words max. E.g., "Rise to power"
             - "Related Forms": Comma-separated word forms only.
-            - "Accepted Keywords": Generate 5–10 semantically meaningful keywords or short phrases that would reasonably be accepted as correct meanings during revision. Avoid repeating the exact official meaning verbatim. Include common synonyms and paraphrases where appropriate.
+            - "Accepted Keywords": Generate 5â€“10 semantically meaningful keywords or short phrases that would reasonably be accepted as correct meanings during revision. Avoid repeating the exact official meaning verbatim. Include common synonyms and paraphrases where appropriate.
             - "Antonyms": Comma-separated opposites.
             - "Pronunciation": Simple phonetic pronunciation preferred (e.g., "uh-SEN-did"). Avoid complex IPA.
             - Use simple, everyday English. Avoid unnecessary fluff.
@@ -703,3 +727,4 @@ class WordRepository(private val wordDao: WordDao) {
         }
     }
 }
+
